@@ -84,14 +84,24 @@ sudo nvram security-policy
 echo "Review settings in Startup Security Utility in macOS Recovery"
 
 # Check Software Update status
+echo "List of installed apps"
+softwareupdate -ia
+
+echo "List of apps for whom updates are available"
+softwareupdate -l
+
 echo "Checking Software Update status..."
 softwareupdate --schedule
 
 # Check Kernel Extensions (KEXT) Management
-echo "Checking Kernel Extensions (KEXT) status..."
+# KEXT- Kernel extentions are part of base OS which extent functionality to other apps
+# macOS imposes restrictions abd requires explicity permissions to load third party KEXTs,
+echo "Checking Kernel Extensions (KEXT) status.. getting all third party Kernel extentions loaded"
 kextstat | grep -v com.apple
 
-# Check System Preferences Lockdown
+# Check System Preferences Lockdow
+# It is feature in macOS that allows administrators to restrict access to certain settings within the system pref app
+# allows admin to enforce policies to maintain system intergrity, security and compliance
 echo "Checking if System Preferences is locked..."
 if sudo defaults read /Library/Preferences/com.apple.systempreferences.plist | grep "LockPrefPane" > /dev/null; then
     echo "System Preferences is locked"
@@ -102,9 +112,6 @@ fi
 # Kernel Hardening
 echo "Checking Kernel Hardening settings..."
 
-# Check for SIP
-echo "System Integrity Protection (SIP) status:"
-csrutil status
 
 # Check for NVRAM protections
 echo "Checking NVRAM protections..."
@@ -119,10 +126,6 @@ else
     echo "Rootless mode is disabled"
 fi
 
-# Check for Secure Boot settings
-echo "Review Secure Boot settings in Startup Security Utility in macOS Recovery."
-
-echo "Kernel Hardening checks completed."
 
 # Checking User Account Security
 echo "Checking User Account Security..."
