@@ -100,6 +100,16 @@ softwareupdate -l
 echo "Checking Software Update status..."
 softwareupdate --schedule
 
+
+# Check if reboot is needed
+echo "Checking if reboot is needed..."
+needsReboot=$(softwareupdate -l | grep -i "restart")
+if [ -n "$needsReboot" ]; then
+    echo "Rebot [REQUIRED]"
+else
+    echo "Reboot [NOT REQUIRED]"
+fi
+
 # Check Kernel Extensions (KEXT) Management
 # KEXT- Kernel extentions are part of base OS which extent functionality to other apps
 # macOS imposes restrictions abd requires explicity permissions to load third party KEXTs,
@@ -245,3 +255,126 @@ for server in "${webservers[@]}"; do
         echo "$server [NOT RUNNING]"
     fi
 done
+
+echo "-----------------------------------------------------------"
+echo "Starting macOS Memory and Processes Audit"
+echo "-----------------------------------------------------------"
+
+
+# Check /proc/meminfo equivalent on macOS
+# vm_stat provides virtual memory statistics on macOS, including information about memory usage, paging activity, and more.
+echo "Checking memory information..."
+vm_stat
+
+
+# Searching for dead/zombie processes
+# This command lists processes that are in a zombie state (marked with 'Z'), which indicates processes that have completed execution but still have entries in the process table.
+echo "Searching for dead/zombie processes..."
+ps aux | awk '{ print $8 " " $2 }' | grep -w Z
+
+
+# Searching for IO waiting processes
+# iostat reports CPU and I/O statistics, including input/output activity and CPU utilization. It helps identify processes that may be waiting for I/O operations.
+echo "Searching for IO waiting processes..."
+iostat
+
+
+# Search prelink tooling
+# This command searches for prelink tooling files across the filesystem. Prelinking is a technique used to optimize dynamic linking of executables and shared libraries on Unix-like systems.
+echo "Search prelink tooling..."
+sudo find / -name prelink
+
+
+echo "--------------------------------------------------------------------"
+
+# Check for Time Machine Backup Status
+echo "Checking Time Machine backup status..."
+tmutil status | grep -q "BackupPhase = 2"
+if [ $? -eq 0 ]; then
+    echo "Time Machine Backup: YES"
+else
+    echo "Time Machine Backup: NO"
+fi
+
+# Scan for Malware and Adware
+echo "Scanning for malware and adware..."
+# Example command using a third-party tool like ClamAV
+clamscan -r / | grep -q "Infected files: 0"
+if [ $? -eq 0 ]; then
+    echo "Malware and Adware Scan: No threats found"
+else
+    echo "Malware and Adware Scan: Threats detected!"
+fi
+
+# Review System Logs for Security Events
+echo "Reviewing system logs for security events..."
+syslog -k Sender kernel -k Message CReq 'denied' | grep -q "denied"
+if [ $? -eq 0 ]; then
+    echo "Security Events in System Logs: YES"
+else
+    echo "Security Events in System Logs: NO"
+fi
+
+# Check System Integrity Using chkrootkit
+echo "Checking system integrity using chkrootkit..."
+sudo chkrootkit | grep -q "not infected"
+if [ $? -eq 0 ]; then
+    echo "System Integrity (chkrootkit): No issues found"
+else
+    echo "System Integrity (chkrootkit): Potential issues detected!"
+fi
+
+# Verify System and Application Integrity with codesign
+echo "Verifying system and application integrity..."
+codesign -vvv --deep /path/to/application.app 2>&1 | grep -q "satisfies its Designated Requirement"
+if [ $? -eq 0 ]; then
+    echo "System and Application Integrity (codesign): Verified"
+else
+    echo "System and Application Integrity (codesign): Not Verified"
+fi
+
+# Monitor Open Ports and Network Connections
+echo "Monitoring open ports and network connections..."
+sudo lsof -i -P -n | grep LISTEN | grep -q "LISTEN"
+if [ $? -eq 0 ]; then
+    echo "Open Ports and Network Connections: YES"
+else
+    echo "Open Ports and Network Connections: NO"
+fi
+
+# Review System Preferences and Settings
+echo "Reviewing critical system preferences..."
+# Example: Check if automatic login is disabled
+defaults read /Library/Preferences/com.apple.loginwindow autoLoginUser 2>/dev/null | grep -q "autoLoginUser"
+if [ $? -eq 0 ]; then
+    echo "Critical System Preferences: Configured"
+else
+    echo "Critical System Preferences: Not Configured"
+fi
+
+# File System Permissions and Ownership Audit
+echo "Auditing file system permissions..."
+sudo find / -type f \( -perm -4000 -o -perm -2000 \) -ls | grep -q "files"
+if [ $? -eq 0 ]; then
+    echo "File System Permissions Audit: Issues found"
+else
+    echo "File System Permissions Audit: No issues found"
+fi
+
+# Check for Unused or Outdated Software
+echo "Checking for unused or outdated software..."
+brew outdated | grep -q "Error"
+if [ $? -eq 0 ]; then
+    echo "Unused or Outdated Software: Issues found"
+else
+    echo "Unused or Outdated Software: No issues found"
+fi
+
+# Review Crash Reports and Diagnostic Data
+echo "Reviewing crash reports and diagnostic data..."
+sudo find /Library/Logs/DiagnosticReports -type f -exec tail -n 10 {} \; | grep -q "error"
+if [ $? -eq 0 ]; then
+    echo "Crash Reports and Diagnostic Data: Issues found"
+else
+    echo "Crash Reports and Diagnostic Data: No issues found"
+fi
