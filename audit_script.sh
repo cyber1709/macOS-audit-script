@@ -142,11 +142,11 @@ networksetup -getwebproxy Wi-Fi
 networksetup -getsecurewebproxy Wi-Fi
 networksetup -getproxybypassdomains Wi-Fi
 
-# Additional Security Checkpoints
-
 # Check for Strong Password Policies
+# Strong password policies enforce complex passwords, enhancing security.
 echo "Checking for strong password policies..."
 pwpolicy getaccountpolicies | grep -i 'policyCategory passwordContent'
+
 
 # Check for Automatic Login
 echo "Checking if Automatic Login is disabled..."
@@ -156,6 +156,12 @@ if [ -z "$autoLoginEnabled" ]; then
 else
     echo "Automatic Login is enabled for user: $autoLoginEnabled"
 fi
+
+# Check for Security & Privacy settings
+# Reviewing Security & Privacy settings helps ensure that the system is configured securely.
+echo "Checking Security & Privacy settings..."
+sudo security authorizationdb read system.preferences > /dev/null 2>&1 && echo "Authorization DB read successfully" || echo "Failed to read Authorization DB"
+
 
 # Check for SSH Access
 echo "Checking if SSH access is enabled..."
