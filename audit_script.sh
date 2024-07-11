@@ -181,6 +181,8 @@ else
 fi
 
 # Check for Secure Keyboard Entry in Terminal
+# secure keyboard entry is feature in macOS to protect keystrokes from being interpreted from being intercepted or monitored 
+# by potentially malicious applications.
 echo "Checking if Secure Keyboard Entry is enabled in Terminal..."
 secureKeyboardEntry=$(defaults read com.apple.Terminal SecureKeyboardEntry 2>/dev/null)
 if [ "$secureKeyboardEntry" == "1" ]; then
@@ -190,6 +192,8 @@ else
 fi
 
 # Check for EFI Password
+# Extensible Firmware password is security feature to protect mac at hardware level
+# prevents critical startup functions, such as selecting a startup disk entering mac recovery
 echo "Checking for EFI (Firmware) password..."
 firmwarePasswordStatus=$(firmwarepasswd -check)
 echo "$firmwarePasswordStatus"
