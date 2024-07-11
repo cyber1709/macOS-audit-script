@@ -11,6 +11,7 @@ OS_VERSION=$(sw_vers -productVersion)
 KERNEL_VERSION=$(uname -r)
 HARDWARE_PLATFORM=$(uname -m)
 HOSTNAME=$(hostname)
+CURRENT_USER=$(whoami)
 
 echo " OPERATING SYSTEM DETAILS "
 echo "  ---------------------------------------------------"
@@ -20,6 +21,7 @@ echo "  Operating system version:  $OS_VERSION"
 echo "  Kernel version:            $KERNEL_VERSION"
 echo "  Hardware platform:         $HARDWARE_PLATFORM"
 echo "  Hostname:                  $HOSTNAME"
+echo "  Current User:              $CURRENT_USER" 
 echo "  ---------------------------------------------------"
 
 # Check System Integrity Protection (SIP), 
@@ -32,12 +34,16 @@ echo "  ---------------------------------------------------"
 echo "Checking System Integrity Protection (SIP) status..."
 csrutil status
 
+echo "------------------------------------------------------"
+
 # Check Gatekeeper status
 # features ensures that only trusted software runs on the macOS
 # only authorised softwares having valid certificates can be installed on macOS
 # to enable/disable "spctl --master-disable/enable"
 echo "Checking Gatekeeper status..."
 spctl --status
+
+echo "-------------------------------------------------------"
 
 # Check XProtect status
 # XProtect is security feature which automitically blocking known malware software
@@ -46,16 +52,22 @@ spctl --status
 echo "Checking XProtect status..."
 /usr/libexec/xprotectcheck --version
 
+echo "-------------------------------------------------------"
+
 # Check Firewall status
 echo "Checking Firewall status..."
 echo "If firewall is disable, state is 0"
 /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
+
+echo "-------------------------------------------------------"
 
 # Check FileVault status
 # it is full disk encryption program in macOS, designed for encrypting entire drive
 # features- full disk encryption, secure recoevery key , password protection, instant data protection
 echo "Checking FileVault status..."
 fdesetup status
+
+echo "-------------------------------------------------------"
 
 # Check Privacy controls
 echo "Checking location services.."
@@ -66,10 +78,14 @@ else
     echo "Location Services: Disabled"
 fi 
 
+echo "-------------------------------------------------------"
+
 # Check which apps have access to the microphone and camera
 # The tccutil command can be used to manage the privacy database for your Mac.
 echo "Checking which apps have access to the microphone and camera..."
 tccutil list
+
+echo "-------------------------------------------------------"
 
 # Check secure boot
 # Secure boot is security feature which ensure that only trusted operating system software loads during startup process
@@ -77,14 +93,18 @@ tccutil list
 # Check Secure Boot
 echo "Checking Secure Boot"
 
+echo "-------------------------------------------------------"
+
 # external boot security refers to security setting that controls weather macOS allows booting from external devices 
 # such as USB drives or external harddisks
 echo "Checking boot security"
 echo "0-Full security mode, 1- Reduced security mode, 2- No security policy enforced"
 sudo nvram security-policy
 
+echo "-------------------------------------------------------"
 
-echo "Review settings in Startup Security Utility in macOS Recovery"
+
+echo "Installed applications, update schedule and updates required"
 
 # Listing installed apps helps in auditing which applications are present on the system.
 echo "List of installed apps"
@@ -100,6 +120,7 @@ softwareupdate -l
 echo "Checking Software Update status..."
 softwareupdate --schedule
 
+echo "-------------------------------------------------------"
 
 # Check if reboot is needed
 echo "Checking if reboot is needed..."
@@ -110,11 +131,15 @@ else
     echo "Reboot [NOT REQUIRED]"
 fi
 
+echo "-------------------------------------------------------"
+
 # Check Kernel Extensions (KEXT) Management
 # KEXT- Kernel extentions are part of base OS which extent functionality to other apps
 # macOS imposes restrictions abd requires explicity permissions to load third party KEXTs,
 echo "Checking Kernel Extensions (KEXT) status.. getting all third party Kernel extentions loaded"
 kextstat | grep -v com.apple
+
+echo "-------------------------------------------------------"
 
 # Check System Preferences Lockdow
 # It is feature in macOS that allows administrators to restrict access to certain settings within the system pref app
@@ -129,10 +154,13 @@ fi
 # Kernel Hardening
 echo "Checking Kernel Hardening settings..."
 
+echo "-------------------------------------------------------"
 
 # Check for NVRAM protections
 echo "Checking NVRAM protections..."
 nvram -p | grep -i 'csr-active-config'
+
+echo "-------------------------------------------------------"
 
 # Check if rootless mode is enabled
 # Rootless mode (System Integrity Protection) prevents root from modifying certain protected parts of macOS.
@@ -144,14 +172,7 @@ else
     echo "Rootless mode is disabled"
 fi
 
-# Checking User Account Security
-echo "Checking User Account Security..."
-echo "Current user: $(whoami)"
-echo "Check user roles and two-factor authentication in System Preferences -> Users & Groups"
-
-# Check Application Layer Security
-echo "Checking Application Layer Security..."
-echo "Ensure apps are sandboxed and signed. Review applications manually."
+echo "-------------------------------------------------------"
 
 # Check Network Security
 echo "Checking Network Security..."
@@ -159,11 +180,28 @@ networksetup -getwebproxy Wi-Fi
 networksetup -getsecurewebproxy Wi-Fi
 networksetup -getproxybypassdomains Wi-Fi
 
+# Check for Bluetooth Status
+echo "Checking Bluetooth status..."
+bluetoothStatus=$(defaults read /Library/Preferences/com.apple.Bluetooth ControllerPowerState 2>/dev/null)
+if [ "$bluetoothStatus" == "0" ]; then
+    echo "Bluetooth is turned off"
+else
+    echo "Bluetooth is turned on"
+fi
+
+# Check for SSH Access
+echo "Checking if SSH access is enabled..."
+sshdStatus=$(systemsetup -getremotelogin)
+echo "$sshdStatus"
+
+echo "-------------------------------------------------------"
+
 # Check for Strong Password Policies
 # Strong password policies enforce complex passwords, enhancing security.
 echo "Checking for strong password policies..."
 pwpolicy getaccountpolicies | grep -i 'policyCategory passwordContent'
 
+echo "-------------------------------------------------------"
 
 # Check for Automatic Login
 echo "Checking if Automatic Login is disabled..."
@@ -174,16 +212,16 @@ else
     echo "Automatic Login is enabled for user: $autoLoginEnabled"
 fi
 
+echo "-------------------------------------------------------"
+
 # Check for Security & Privacy settings
 # Reviewing Security & Privacy settings helps ensure that the system is configured securely.
 echo "Checking Security & Privacy settings..."
 sudo security authorizationdb read system.preferences > /dev/null 2>&1 && echo "Authorization DB read successfully" || echo "Failed to read Authorization DB"
 
+echo "-------------------------------------------------------"
 
-# Check for SSH Access
-echo "Checking if SSH access is enabled..."
-sshdStatus=$(systemsetup -getremotelogin)
-echo "$sshdStatus"
+
 
 # Check for Guest Account
 echo "Checking if Guest Account is disabled..."
@@ -194,14 +232,7 @@ else
     echo "Guest Account is enabled"
 fi
 
-# Check for Bluetooth Status
-echo "Checking Bluetooth status..."
-bluetoothStatus=$(defaults read /Library/Preferences/com.apple.Bluetooth ControllerPowerState 2>/dev/null)
-if [ "$bluetoothStatus" == "0" ]; then
-    echo "Bluetooth is turned off"
-else
-    echo "Bluetooth is turned on"
-fi
+
 
 # Check for Secure Keyboard Entry in Terminal
 # secure keyboard entry is feature in macOS to protect keystrokes from being interpreted from being intercepted or monitored 
