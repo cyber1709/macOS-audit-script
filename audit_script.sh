@@ -66,7 +66,10 @@ else
     echo "Location Services: Disabled"
 fi 
 
-# Get code to see all the services which are using microphone and camera 
+# Check which apps have access to the microphone and camera
+# The tccutil command can be used to manage the privacy database for your Mac.
+echo "Checking which apps have access to the microphone and camera..."
+tccutil list
 
 # Check secure boot
 # Secure boot is security feature which ensure that only trusted operating system software loads during startup process
@@ -83,13 +86,17 @@ sudo nvram security-policy
 
 echo "Review settings in Startup Security Utility in macOS Recovery"
 
-# Check Software Update status
+# Listing installed apps helps in auditing which applications are present on the system.
 echo "List of installed apps"
 softwareupdate -ia
 
+# List of apps for whom updates are available
+# Checking for available updates for installed apps.
 echo "List of apps for whom updates are available"
 softwareupdate -l
 
+# Check Software Update status
+# Keeping macOS updated is crucial for maintaining security as updates often include patches for vulnerabilities.
 echo "Checking Software Update status..."
 softwareupdate --schedule
 
@@ -118,6 +125,7 @@ echo "Checking NVRAM protections..."
 nvram -p | grep -i 'csr-active-config'
 
 # Check if rootless mode is enabled
+# Rootless mode (System Integrity Protection) prevents root from modifying certain protected parts of macOS.
 echo "Checking if rootless mode is enabled..."
 rootlessStatus=$(nvram -p | grep -i 'boot-args' | grep -i 'rootless=0')
 if [ -z "$rootlessStatus" ]; then
@@ -125,7 +133,6 @@ if [ -z "$rootlessStatus" ]; then
 else
     echo "Rootless mode is disabled"
 fi
-
 
 # Checking User Account Security
 echo "Checking User Account Security..."
@@ -204,6 +211,37 @@ echo "Checking for EFI (Firmware) password..."
 firmwarePasswordStatus=$(firmwarepasswd -check)
 echo "$firmwarePasswordStatus"
 
-echo "macOS Security Audit Completed"
 
-echo "Review the output and adjust settings in System Preferences where necessary."
+
+
+echo "-------------------------------------------------------------"
+echo "Checking for running web servers"
+echo "-------------------------------------------------------------"
+
+# Check for Apache
+if pgrep -x "httpd" > /dev/null; then
+    echo "Apache [RUNNING]"
+    apachectl -v
+else
+    echo "Apache [NOT RUNNING]"
+fi
+
+# Check for Nginx
+if pgrep -x "nginx" > /dev/null; then
+    echo "Nginx [RUNNING]"
+    nginx -v
+else
+    echo "Nginx [NOT RUNNING]"
+fi
+
+# Check for other common web servers
+# This can be expanded to include other web servers if needed.
+webservers=("lighttpd" "caddy")
+for server in "${webservers[@]}"; do
+    if pgrep -x "$server" > /dev/null; then
+        echo "$server [RUNNING]"
+        $server -v
+    else
+        echo "$server [NOT RUNNING]"
+    fi
+done
