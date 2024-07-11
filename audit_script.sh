@@ -48,18 +48,39 @@ echo "Checking XProtect status..."
 
 # Check Firewall status
 echo "Checking Firewall status..."
+echo "If firewall is disable, state is 0"
 /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
 
 # Check FileVault status
+# it is full disk encryption program in macOS, designed for encrypting entire drive
+# features- full disk encryption, secure recoevery key , password protection, instant data protection
 echo "Checking FileVault status..."
 fdesetup status
 
 # Check Privacy controls
-echo "Checking Privacy controls..."
-echo "Review Privacy settings in System Preferences -> Security & Privacy -> Privacy"
+echo "Checking location services.."
+location_status= $(defaults read /var/db/locationd/Library/Preferences/ByHost/com.apple.locationd.plist LocationServicesEnabled)
+if ["$location_status" -eq 1]; then
+    echo "Location Services: Enabled"
+else
+    echo "Location Services: Disabled"
+fi 
 
-# Check Secure Boot and External Boot Security
-echo "Checking Secure Boot and External Boot Security..."
+# Get code to see all the services which are using microphone and camera 
+
+# Check secure boot
+# Secure boot is security feature which ensure that only trusted operating system software loads during startup process
+# protecting against tempering or unauthorised modifications 
+# Check Secure Boot
+echo "Checking Secure Boot"
+
+# external boot security refers to security setting that controls weather macOS allows booting from external devices 
+# such as USB drives or external harddisks
+echo "Checking boot security"
+echo "0-Full security mode, 1- Reduced security mode, 2- No security policy enforced"
+sudo nvram security-policy
+
+
 echo "Review settings in Startup Security Utility in macOS Recovery"
 
 # Check Software Update status
