@@ -1,0 +1,175 @@
+#!/bin/bash
+
+echo "Starting macOS Security Audit"
+
+# Gather System Information
+echo "Gathering System Information..."
+AUTHOR="MHA (IB)"
+VERSION="1.0"
+OS_NAME=$(uname -s)
+OS_VERSION=$(sw_vers -productVersion)
+KERNEL_VERSION=$(uname -r)
+HARDWARE_PLATFORM=$(uname -m)
+HOSTNAME=$(hostname)
+
+echo " OPERATING SYSTEM DETAILS "
+echo "  ---------------------------------------------------"
+echo "  Program version:           $PROGRAM_VERSION"
+echo "  Operating system:          $OS_NAME"
+echo "  Operating system version:  $OS_VERSION"
+echo "  Kernel version:            $KERNEL_VERSION"
+echo "  Hardware platform:         $HARDWARE_PLATFORM"
+echo "  Hostname:                  $HOSTNAME"
+echo "  ---------------------------------------------------"
+
+# Check System Integrity Protection (SIP), 
+# security technology in macOS designed to help prevent malcious software from modyfing protected files
+# and directories on the macOS, restricts access directories like /System, /usr (except /usr/local), /bin, /sbin
+# and the apps that come pre installed in macOS
+# It limits system process and kernel extentions from being altered
+# restricts code injection into system processes
+# to enable/diable "csrutil enable/disable" 
+echo "Checking System Integrity Protection (SIP) status..."
+csrutil status
+
+# Check Gatekeeper status
+# features ensures that only trusted software runs on the macOS
+# only authorised softwares having valid certificates can be installed on macOS
+# to enable/disable "spctl --master-disable/enable"
+echo "Checking Gatekeeper status..."
+spctl --status
+
+# Check XProtect status
+# XProtect is security feature which automitically blocking known malware software
+# Key features- Automatic updates of signatures, File quarantine, Signature based detection
+# Integration with Gatekeeper, Silent operations
+echo "Checking XProtect status..."
+/usr/libexec/xprotectcheck --version
+
+# Check Firewall status
+echo "Checking Firewall status..."
+/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
+
+# Check FileVault status
+echo "Checking FileVault status..."
+fdesetup status
+
+# Check Privacy controls
+echo "Checking Privacy controls..."
+echo "Review Privacy settings in System Preferences -> Security & Privacy -> Privacy"
+
+# Check Secure Boot and External Boot Security
+echo "Checking Secure Boot and External Boot Security..."
+echo "Review settings in Startup Security Utility in macOS Recovery"
+
+# Check Software Update status
+echo "Checking Software Update status..."
+softwareupdate --schedule
+
+# Check Kernel Extensions (KEXT) Management
+echo "Checking Kernel Extensions (KEXT) status..."
+kextstat | grep -v com.apple
+
+# Check System Preferences Lockdown
+echo "Checking if System Preferences is locked..."
+if sudo defaults read /Library/Preferences/com.apple.systempreferences.plist | grep "LockPrefPane" > /dev/null; then
+    echo "System Preferences is locked"
+else
+    echo "System Preferences is not locked"
+fi
+
+# Kernel Hardening
+echo "Checking Kernel Hardening settings..."
+
+# Check for SIP
+echo "System Integrity Protection (SIP) status:"
+csrutil status
+
+# Check for NVRAM protections
+echo "Checking NVRAM protections..."
+nvram -p | grep -i 'csr-active-config'
+
+# Check if rootless mode is enabled
+echo "Checking if rootless mode is enabled..."
+rootlessStatus=$(nvram -p | grep -i 'boot-args' | grep -i 'rootless=0')
+if [ -z "$rootlessStatus" ]; then
+    echo "Rootless mode is enabled"
+else
+    echo "Rootless mode is disabled"
+fi
+
+# Check for Secure Boot settings
+echo "Review Secure Boot settings in Startup Security Utility in macOS Recovery."
+
+echo "Kernel Hardening checks completed."
+
+# Checking User Account Security
+echo "Checking User Account Security..."
+echo "Current user: $(whoami)"
+echo "Check user roles and two-factor authentication in System Preferences -> Users & Groups"
+
+# Check Application Layer Security
+echo "Checking Application Layer Security..."
+echo "Ensure apps are sandboxed and signed. Review applications manually."
+
+# Check Network Security
+echo "Checking Network Security..."
+networksetup -getwebproxy Wi-Fi
+networksetup -getsecurewebproxy Wi-Fi
+networksetup -getproxybypassdomains Wi-Fi
+
+# Additional Security Checkpoints
+
+# Check for Strong Password Policies
+echo "Checking for strong password policies..."
+pwpolicy getaccountpolicies | grep -i 'policyCategory passwordContent'
+
+# Check for Automatic Login
+echo "Checking if Automatic Login is disabled..."
+autoLoginEnabled=$(defaults read /Library/Preferences/com.apple.loginwindow autoLoginUser 2>/dev/null)
+if [ -z "$autoLoginEnabled" ]; then
+    echo "Automatic Login is disabled"
+else
+    echo "Automatic Login is enabled for user: $autoLoginEnabled"
+fi
+
+# Check for SSH Access
+echo "Checking if SSH access is enabled..."
+sshdStatus=$(systemsetup -getremotelogin)
+echo "$sshdStatus"
+
+# Check for Guest Account
+echo "Checking if Guest Account is disabled..."
+guestAccountStatus=$(defaults read /Library/Preferences/com.apple.loginwindow GuestEnabled 2>/dev/null)
+if [ "$guestAccountStatus" == "0" ]; then
+    echo "Guest Account is disabled"
+else
+    echo "Guest Account is enabled"
+fi
+
+# Check for Bluetooth Status
+echo "Checking Bluetooth status..."
+bluetoothStatus=$(defaults read /Library/Preferences/com.apple.Bluetooth ControllerPowerState 2>/dev/null)
+if [ "$bluetoothStatus" == "0" ]; then
+    echo "Bluetooth is turned off"
+else
+    echo "Bluetooth is turned on"
+fi
+
+# Check for Secure Keyboard Entry in Terminal
+echo "Checking if Secure Keyboard Entry is enabled in Terminal..."
+secureKeyboardEntry=$(defaults read com.apple.Terminal SecureKeyboardEntry 2>/dev/null)
+if [ "$secureKeyboardEntry" == "1" ]; then
+    echo "Secure Keyboard Entry is enabled in Terminal"
+else
+    echo "Secure Keyboard Entry is disabled in Terminal"
+fi
+
+# Check for EFI Password
+echo "Checking for EFI (Firmware) password..."
+firmwarePasswordStatus=$(firmwarepasswd -check)
+echo "$firmwarePasswordStatus"
+
+echo "macOS Security Audit Completed"
+
+echo "Review the output and adjust settings in System Preferences where necessary."
