@@ -176,3 +176,38 @@ echo -e "${YELLOW}-------------------------------------------------------${NC}"
 # List all USB devices (Historical)
 echo -e "${BLUE}List of all USB devices ever connected${NC}"
 log show --predicate 'eventMessage contains "USBMSC"' --info --last 1d > usb_devices.txt
+
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
+
+# Check Software Update status
+echo -e "${BLUE}Checking for Automatic Software Update status...${NC}"
+softwareupdate --schedule
+
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
+
+# Check if reboot is needed
+echo -e "${BLUE}Checking if reboot is needed...${NC}"
+needsReboot=$(softwareupdate -l | grep -i "restart")
+if [ -n "$needsReboot" ]; then
+    echo -e "${RED}Reboot [REQUIRED]${NC}"
+else
+    echo -e "${GREEN}Reboot [NOT REQUIRED]${NC}"
+fi
+
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
+
+
+# Check if there are third-party kernel extensions loaded
+kextstat | grep -v com.apple 
+
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
+
+# Check System Preferences Lockdown
+echo -e "${BLUE}Checking if System Preferences is locked...${NC}"
+if sudo defaults read /Library/Preferences/com.apple.systempreferences.plist | grep "LockPrefPane" > /dev/null; then
+    echo -e "${GREEN}System Preferences is locked${NC}"
+else
+    echo -e "${RED}System Preferences is not locked${NC}"
+fi
+
+echo -e "${YELLOW}-------------------------------------------------------${NC}"

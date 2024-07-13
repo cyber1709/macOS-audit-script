@@ -75,6 +75,7 @@ USB:
               BSD Name: disk3
               Logical Unit: 0
               Partition Map Type: MBR (Master Boot Record)
+              S.M.A.R.T. status: Verified
               USB Interface: 0
               Volumes:
                 UBUNTU 22_0:
