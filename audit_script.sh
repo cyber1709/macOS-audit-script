@@ -1,9 +1,16 @@
 #!/bin/bash
 
-echo "Starting macOS Security Audit"
+# ANSI escape codes for color
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}Starting macOS Security Audit${NC}"
 
 # Gather System Information
-echo "Gathering System Information..."
+echo -e "${BLUE}Gathering System Information...${NC}"
 AUTHOR="MHA (IB)"
 VERSION="1.0"
 OS_NAME=$(uname -s)
@@ -13,399 +20,159 @@ HARDWARE_PLATFORM=$(uname -m)
 HOSTNAME=$(hostname)
 CURRENT_USER=$(whoami)
 
-echo " OPERATING SYSTEM DETAILS "
-echo "  ---------------------------------------------------"
-echo "  Program version:           $PROGRAM_VERSION"
-echo "  Operating system:          $OS_NAME"
-echo "  Operating system version:  $OS_VERSION"
-echo "  Kernel version:            $KERNEL_VERSION"
-echo "  Hardware platform:         $HARDWARE_PLATFORM"
-echo "  Hostname:                  $HOSTNAME"
-echo "  Current User:              $CURRENT_USER" 
-echo "  ---------------------------------------------------"
+# Additional System Information
+MACOS_VERSION=$(sw_vers -productVersion)
+RAM_SIZE=$(system_profiler SPHardwareDataType | grep "Memory:" | awk '{print $2, $3}')
+SSD_SIZE=$(diskutil info / | grep "Total Size" | awk '{print $4, $5}')
+INSTALLED_OS_DATE=$(ls -l /System/Library/CoreServices/SystemVersion.plist | awk '{print $6, $7}')
+PROCESSOR=$(sysctl -n machdep.cpu.brand_string)
 
-# Check System Integrity Protection (SIP), 
-# security technology in macOS designed to help prevent malcious software from modyfing protected files
-# and directories on the macOS, restricts access directories like /System, /usr (except /usr/local), /bin, /sbin
-# and the apps that come pre installed in macOS
-# It limits system process and kernel extentions from being altered
-# restricts code injection into system processes
-# to enable/diable "csrutil enable/disable" 
-echo "Checking System Integrity Protection (SIP) status..."
+# Network Information
+LOCAL_IP=$(ipconfig getifaddr en0)  # Adjust interface name as needed (en0 for Ethernet/Wi-Fi)
+PUBLIC_IP=$(curl -s ifconfig.me)
+MAC_ADDRESS=$(ifconfig en0 | awk '/ether/{print $2}')
+
+echo -e "${YELLOW} SYSTEM DETAILS ${NC}"
+echo -e "  ---------------------------------------------------"
+echo -e "  Program version:           $VERSION"
+echo -e "  Operating system:          $OS_NAME"
+echo -e "  Operating system version:  $OS_VERSION"
+echo -e "  Kernel version:            $KERNEL_VERSION"
+echo -e "  Hardware platform:         $HARDWARE_PLATFORM"
+echo -e "  Hostname:                  $HOSTNAME"
+echo -e "  Current User:              $CURRENT_USER"
+echo -e "  macOS version:             $MACOS_VERSION"
+echo -e "  RAM size:                  $RAM_SIZE"
+echo -e "  SSD size:                  $SSD_SIZE"
+echo -e "  Installed OS date:         $INSTALLED_OS_DATE"
+echo -e "  Processor:                 $PROCESSOR"
+echo -e "  Local IP address:          $LOCAL_IP"
+echo -e "  Public IP address:         $PUBLIC_IP"
+echo -e "  MAC address:               $MAC_ADDRESS"
+echo -e "  ---------------------------------------------------"
+
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
+
+# Check System Integrity Protection (SIP)
+echo -e "${BLUE}Checking System Integrity Protection (SIP) status...${NC}"
 csrutil status
 
-echo "------------------------------------------------------"
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
 
 # Check Gatekeeper status
-# features ensures that only trusted software runs on the macOS
-# only authorised softwares having valid certificates can be installed on macOS
-# to enable/disable "spctl --master-disable/enable"
-echo "Checking Gatekeeper status..."
+echo -e "${BLUE}Checking Gatekeeper status...${NC}"
 spctl --status
 
-echo "-------------------------------------------------------"
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
 
 # Check XProtect status
-# XProtect is security feature which automitically blocking known malware software
-# Key features- Automatic updates of signatures, File quarantine, Signature based detection
-# Integration with Gatekeeper, Silent operations
-echo "Checking XProtect status..."
-/usr/libexec/xprotectcheck --version
+echo -e "${BLUE}Checking XProtect status...${NC}"
+xprotect_plist="/System/Library/CoreServices/XProtect.bundle/Contents/Resources/XProtect.plist"
+if [ -f "$xprotect_plist" ]; then
+    echo -e "${GREEN}XProtect is enabled${NC}"
+    echo -e "${BLUE}XProtect version:${NC}"
+    /usr/libexec/PlistBuddy -c "Print :Version" "$xprotect_plist"
+else
+    echo -e "${RED}XProtect is not found${NC}"
+fi
 
-echo "-------------------------------------------------------"
-
-# Check Firewall status
-echo "Checking Firewall status..."
-echo "If firewall is disable, state is 0"
-/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
-
-echo "-------------------------------------------------------"
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
 
 # Check FileVault status
-# it is full disk encryption program in macOS, designed for encrypting entire drive
-# features- full disk encryption, secure recoevery key , password protection, instant data protection
-echo "Checking FileVault status..."
+echo -e "${BLUE}Checking FileVault status...${NC}"
 fdesetup status
 
-echo "-------------------------------------------------------"
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
 
 # Check Privacy controls
-echo "Checking location services.."
-location_status= $(defaults read /var/db/locationd/Library/Preferences/ByHost/com.apple.locationd.plist LocationServicesEnabled)
-if ["$location_status" -eq 1]; then
-    echo "Location Services: Enabled"
+echo -e "${BLUE}Checking location services...${NC}"
+location_status=$(defaults read /var/db/locationd/Library/Preferences/ByHost/com.apple.locationd.plist LocationServicesEnabled)
+if [ "$location_status" -eq 1 ]; then
+    echo -e "${GREEN}Location Services: Enabled${NC}"
 else
-    echo "Location Services: Disabled"
-fi 
+    echo -e "${RED}Location Services: Disabled${NC}"
+fi
 
-echo "-------------------------------------------------------"
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
 
-# Check which apps have access to the microphone and camera
-# The tccutil command can be used to manage the privacy database for your Mac.
-echo "Checking which apps have access to the microphone and camera..."
-tccutil list
+# Check microphone access
+echo -e "${BLUE}Checking microphone access...${NC}"
+microphone_access=$(tccutil list Microphone | grep -o "com.*")
+if [ -n "$microphone_access" ]; then
+    echo -e "${GREEN}Microphone access granted to:${NC}"
+    echo "$microphone_access"
+fi
 
-echo "-------------------------------------------------------"
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
 
-# Check secure boot
-# Secure boot is security feature which ensure that only trusted operating system software loads during startup process
-# protecting against tempering or unauthorised modifications 
-# Check Secure Boot
-echo "Checking Secure Boot"
+# Check camera access
+echo -e "${BLUE}Checking camera access...${NC}"
+camera_access=$(tccutil list Camera | grep -o "com.*")
+if [ -n "$camera_access" ]; then
+    echo -e "${GREEN}Camera access granted to:${NC}"
+    echo "$camera_access"
+fi
 
-echo "-------------------------------------------------------"
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
 
-# external boot security refers to security setting that controls weather macOS allows booting from external devices 
-# such as USB drives or external harddisks
-echo "Checking boot security"
-echo "0-Full security mode, 1- Reduced security mode, 2- No security policy enforced"
-sudo nvram security-policy
+# Check Firmware Password
+echo -e "${BLUE}Checking Firmware Password status...${NC}"
+firmware_passwd_status=$(sudo firmwarepasswd -check)
+if echo "$firmware_passwd_status" | grep -q "Password Enabled: Yes"; then
+    echo -e "${GREEN}Firmware Password is enabled${NC}"
+else
+    echo -e "${RED}Firmware Password is not enabled${NC}"
+fi
 
-echo "-------------------------------------------------------"
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
 
+# Check Screen Saver
+echo -e "${BLUE}Checking Screen Saver status...${NC}"
+if [[ $(defaults -currentHost read com.apple.screensaver idleTime) -gt 0 ]]; then
+    echo -e "${GREEN}Screen Saver is enabled${NC}"
+else
+    echo -e "${RED}Screen Saver is disabled${NC}"
+fi
 
-echo "Installed applications, update schedule and updates required"
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
 
 # Listing installed apps helps in auditing which applications are present on the system.
-echo "List of installed apps"
-softwareupdate -ia
+echo -e "${BLUE}List of installed apps written to installed_applications.txt ${NC}"
+system_profiler SPApplicationsDataType > installed_applications.txt
 
-# List of apps for whom updates are available
-# Checking for available updates for installed apps.
-echo "List of apps for whom updates are available"
-softwareupdate -l
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
 
-# Check Software Update status
-# Keeping macOS updated is crucial for maintaining security as updates often include patches for vulnerabilities.
-echo "Checking Software Update status..."
-softwareupdate --schedule
+# Check for updates available for installed softwares
+echo -e "${BLUE}Checking for updates available for installed software...${NC}"
+echo -e "${BLUE}It will check for applications installed from app store only..${NC}"
+sudo softwareupdate -l
 
-echo "-------------------------------------------------------"
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
 
-# Check if reboot is needed
-echo "Checking if reboot is needed..."
-needsReboot=$(softwareupdate -l | grep -i "restart")
-if [ -n "$needsReboot" ]; then
-    echo "Rebot [REQUIRED]"
-else
-    echo "Reboot [NOT REQUIRED]"
-fi
+# List third-party applications
+echo -e "${BLUE}List of third-party applications${NC}"
+# Use Spotlight to list apps in /Applications folder excluding system apps
+ls -l /Applications | grep -v "App Store.app"
 
-echo "-------------------------------------------------------"
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
 
-# Check Kernel Extensions (KEXT) Management
-# KEXT- Kernel extentions are part of base OS which extent functionality to other apps
-# macOS imposes restrictions abd requires explicity permissions to load third party KEXTs,
-echo "Checking Kernel Extensions (KEXT) status.. getting all third party Kernel extentions loaded"
-kextstat | grep -v com.apple
-
-echo "-------------------------------------------------------"
-
-# Check System Preferences Lockdow
-# It is feature in macOS that allows administrators to restrict access to certain settings within the system pref app
-# allows admin to enforce policies to maintain system intergrity, security and compliance
-echo "Checking if System Preferences is locked..."
-if sudo defaults read /Library/Preferences/com.apple.systempreferences.plist | grep "LockPrefPane" > /dev/null; then
-    echo "System Preferences is locked"
-else
-    echo "System Preferences is not locked"
-fi
-
-# Kernel Hardening
-echo "Checking Kernel Hardening settings..."
-
-echo "-------------------------------------------------------"
-
-# Check for NVRAM protections
-echo "Checking NVRAM protections..."
-nvram -p | grep -i 'csr-active-config'
-
-echo "-------------------------------------------------------"
-
-# Check if rootless mode is enabled
-# Rootless mode (System Integrity Protection) prevents root from modifying certain protected parts of macOS.
-echo "Checking if rootless mode is enabled..."
-rootlessStatus=$(nvram -p | grep -i 'boot-args' | grep -i 'rootless=0')
-if [ -z "$rootlessStatus" ]; then
-    echo "Rootless mode is enabled"
-else
-    echo "Rootless mode is disabled"
-fi
-
-echo "-------------------------------------------------------"
-
-# Check Network Security
-echo "Checking Network Security..."
-networksetup -getwebproxy Wi-Fi
-networksetup -getsecurewebproxy Wi-Fi
-networksetup -getproxybypassdomains Wi-Fi
-
-# Check for Bluetooth Status
-echo "Checking Bluetooth status..."
-bluetoothStatus=$(defaults read /Library/Preferences/com.apple.Bluetooth ControllerPowerState 2>/dev/null)
-if [ "$bluetoothStatus" == "0" ]; then
-    echo "Bluetooth is turned off"
-else
-    echo "Bluetooth is turned on"
-fi
-
-# Check for SSH Access
-echo "Checking if SSH access is enabled..."
-sshdStatus=$(systemsetup -getremotelogin)
-echo "$sshdStatus"
-
-echo "-------------------------------------------------------"
-
-# Check for Strong Password Policies
-# Strong password policies enforce complex passwords, enhancing security.
-echo "Checking for strong password policies..."
-pwpolicy getaccountpolicies | grep -i 'policyCategory passwordContent'
-
-echo "-------------------------------------------------------"
-
-# Check for Automatic Login
-echo "Checking if Automatic Login is disabled..."
-autoLoginEnabled=$(defaults read /Library/Preferences/com.apple.loginwindow autoLoginUser 2>/dev/null)
-if [ -z "$autoLoginEnabled" ]; then
-    echo "Automatic Login is disabled"
-else
-    echo "Automatic Login is enabled for user: $autoLoginEnabled"
-fi
-
-echo "-------------------------------------------------------"
-
-# Check for Security & Privacy settings
-# Reviewing Security & Privacy settings helps ensure that the system is configured securely.
-echo "Checking Security & Privacy settings..."
-sudo security authorizationdb read system.preferences > /dev/null 2>&1 && echo "Authorization DB read successfully" || echo "Failed to read Authorization DB"
-
-echo "-------------------------------------------------------"
-
-
-
-# Check for Guest Account
-echo "Checking if Guest Account is disabled..."
-guestAccountStatus=$(defaults read /Library/Preferences/com.apple.loginwindow GuestEnabled 2>/dev/null)
-if [ "$guestAccountStatus" == "0" ]; then
-    echo "Guest Account is disabled"
-else
-    echo "Guest Account is enabled"
-fi
-
-
-
-# Check for Secure Keyboard Entry in Terminal
-# secure keyboard entry is feature in macOS to protect keystrokes from being interpreted from being intercepted or monitored 
-# by potentially malicious applications.
-echo "Checking if Secure Keyboard Entry is enabled in Terminal..."
-secureKeyboardEntry=$(defaults read com.apple.Terminal SecureKeyboardEntry 2>/dev/null)
-if [ "$secureKeyboardEntry" == "1" ]; then
-    echo "Secure Keyboard Entry is enabled in Terminal"
-else
-    echo "Secure Keyboard Entry is disabled in Terminal"
-fi
-
-# Check for EFI Password
-# Extensible Firmware password is security feature to protect mac at hardware level
-# prevents critical startup functions, such as selecting a startup disk entering mac recovery
-echo "Checking for EFI (Firmware) password..."
-firmwarePasswordStatus=$(firmwarepasswd -check)
-echo "$firmwarePasswordStatus"
-
-
-
-
-echo "-------------------------------------------------------------"
-echo "Checking for running web servers"
-echo "-------------------------------------------------------------"
-
-# Check for Apache
-if pgrep -x "httpd" > /dev/null; then
-    echo "Apache [RUNNING]"
-    apachectl -v
-else
-    echo "Apache [NOT RUNNING]"
-fi
-
-# Check for Nginx
-if pgrep -x "nginx" > /dev/null; then
-    echo "Nginx [RUNNING]"
-    nginx -v
-else
-    echo "Nginx [NOT RUNNING]"
-fi
-
-# Check for other common web servers
-# This can be expanded to include other web servers if needed.
-webservers=("lighttpd" "caddy")
-for server in "${webservers[@]}"; do
-    if pgrep -x "$server" > /dev/null; then
-        echo "$server [RUNNING]"
-        $server -v
-    else
-        echo "$server [NOT RUNNING]"
+# Check for untrusted or unsigned applications
+echo -e "${BLUE}Checking for untrusted or unsigned applications...${NC}"
+for app in /Applications/*.app; do
+    if ! codesign -dv "$app" &> /dev/null; then
+        echo -e "${RED}$app${NC}"
     fi
 done
 
-echo "-----------------------------------------------------------"
-echo "Starting macOS Memory and Processes Audit"
-echo "-----------------------------------------------------------"
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
+
+# List all USB devices (Historical)
+echo -e "${BLUE}Getting list of Currently connected USB devices to text file ${NC}"
+system_profiler SPUSBDataType -detailLevel full > current_usb_devices.txt
+
+echo -e "${YELLOW}-------------------------------------------------------${NC}"
 
 
-# Check /proc/meminfo equivalent on macOS
-# vm_stat provides virtual memory statistics on macOS, including information about memory usage, paging activity, and more.
-echo "Checking memory information..."
-vm_stat
-
-
-# Searching for dead/zombie processes
-# This command lists processes that are in a zombie state (marked with 'Z'), which indicates processes that have completed execution but still have entries in the process table.
-echo "Searching for dead/zombie processes..."
-ps aux | awk '{ print $8 " " $2 }' | grep -w Z
-
-
-# Searching for IO waiting processes
-# iostat reports CPU and I/O statistics, including input/output activity and CPU utilization. It helps identify processes that may be waiting for I/O operations.
-echo "Searching for IO waiting processes..."
-iostat
-
-
-# Search prelink tooling
-# This command searches for prelink tooling files across the filesystem. Prelinking is a technique used to optimize dynamic linking of executables and shared libraries on Unix-like systems.
-echo "Search prelink tooling..."
-sudo find / -name prelink
-
-
-echo "--------------------------------------------------------------------"
-
-# Check for Time Machine Backup Status
-echo "Checking Time Machine backup status..."
-tmutil status | grep -q "BackupPhase = 2"
-if [ $? -eq 0 ]; then
-    echo "Time Machine Backup: YES"
-else
-    echo "Time Machine Backup: NO"
-fi
-
-# Scan for Malware and Adware
-echo "Scanning for malware and adware..."
-# Example command using a third-party tool like ClamAV
-clamscan -r / | grep -q "Infected files: 0"
-if [ $? -eq 0 ]; then
-    echo "Malware and Adware Scan: No threats found"
-else
-    echo "Malware and Adware Scan: Threats detected!"
-fi
-
-# Review System Logs for Security Events
-echo "Reviewing system logs for security events..."
-syslog -k Sender kernel -k Message CReq 'denied' | grep -q "denied"
-if [ $? -eq 0 ]; then
-    echo "Security Events in System Logs: YES"
-else
-    echo "Security Events in System Logs: NO"
-fi
-
-# Check System Integrity Using chkrootkit
-echo "Checking system integrity using chkrootkit..."
-sudo chkrootkit | grep -q "not infected"
-if [ $? -eq 0 ]; then
-    echo "System Integrity (chkrootkit): No issues found"
-else
-    echo "System Integrity (chkrootkit): Potential issues detected!"
-fi
-
-# Verify System and Application Integrity with codesign
-echo "Verifying system and application integrity..."
-codesign -vvv --deep /path/to/application.app 2>&1 | grep -q "satisfies its Designated Requirement"
-if [ $? -eq 0 ]; then
-    echo "System and Application Integrity (codesign): Verified"
-else
-    echo "System and Application Integrity (codesign): Not Verified"
-fi
-
-# Monitor Open Ports and Network Connections
-echo "Monitoring open ports and network connections..."
-sudo lsof -i -P -n | grep LISTEN | grep -q "LISTEN"
-if [ $? -eq 0 ]; then
-    echo "Open Ports and Network Connections: YES"
-else
-    echo "Open Ports and Network Connections: NO"
-fi
-
-# Review System Preferences and Settings
-echo "Reviewing critical system preferences..."
-# Example: Check if automatic login is disabled
-defaults read /Library/Preferences/com.apple.loginwindow autoLoginUser 2>/dev/null | grep -q "autoLoginUser"
-if [ $? -eq 0 ]; then
-    echo "Critical System Preferences: Configured"
-else
-    echo "Critical System Preferences: Not Configured"
-fi
-
-# File System Permissions and Ownership Audit
-echo "Auditing file system permissions..."
-sudo find / -type f \( -perm -4000 -o -perm -2000 \) -ls | grep -q "files"
-if [ $? -eq 0 ]; then
-    echo "File System Permissions Audit: Issues found"
-else
-    echo "File System Permissions Audit: No issues found"
-fi
-
-# Check for Unused or Outdated Software
-echo "Checking for unused or outdated software..."
-brew outdated | grep -q "Error"
-if [ $? -eq 0 ]; then
-    echo "Unused or Outdated Software: Issues found"
-else
-    echo "Unused or Outdated Software: No issues found"
-fi
-
-# Review Crash Reports and Diagnostic Data
-echo "Reviewing crash reports and diagnostic data..."
-sudo find /Library/Logs/DiagnosticReports -type f -exec tail -n 10 {} \; | grep -q "error"
-if [ $? -eq 0 ]; then
-    echo "Crash Reports and Diagnostic Data: Issues found"
-else
-    echo "Crash Reports and Diagnostic Data: No issues found"
-fi
+# List all USB devices (Historical)
+echo -e "${BLUE}List of all USB devices ever connected${NC}"
+log show --predicate 'eventMessage contains "USBMSC"' --info --last 1d > usb_devices.txt

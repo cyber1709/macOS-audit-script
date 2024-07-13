@@ -1,0 +1,89 @@
+USB:
+
+    USB 3.0 Bus:
+
+      Host Controller Driver: AppleUSBXHCIWPT
+      PCI Device ID: 0x9cb1 
+      PCI Revision ID: 0x0003 
+      PCI Vendor ID: 0x8086 
+
+        Internal Memory Card Reader:
+
+          Product ID: 0x8406
+          Vendor ID: 0x05ac (Apple Inc.)
+          Version: 8.20
+          Serial Number: 000000000820
+          Speed: Up to 5 Gb/s
+          Manufacturer: Apple
+          Location ID: 0x14600000 / 13
+          Current Available (mA): 900
+          Current Required (mA): 896
+          Extra Operating Current (mA): 0
+          Built-In: Yes
+          Media:
+            SD Card Reader:
+              Capacity: 250.14 GB (2,50,13,88,53,376 bytes)
+              Removable Media: Yes
+              BSD Name: disk2
+              Logical Unit: 0
+              Partition Map Type: MBR (Master Boot Record)
+              S.M.A.R.T. status: Verified
+              USB Interface: 0
+              Volumes:
+                sdcard:
+                  Capacity: 250.11 GB (2,50,10,52,98,944 bytes)
+                  Free: 177.39 GB (1,77,39,04,48,640 bytes)
+                  Writable: Yes
+                  File System: Journaled HFS+
+                  BSD Name: disk2s1
+                  Mount Point: /Volumes/sdcard
+                  Content: Apple_HFS
+                  Volume UUID: 9BFE3983-7B25-3605-8BC1-ECA36A13EDEB
+
+        BRCM20702 Hub:
+
+          Product ID: 0x4500
+          Vendor ID: 0x0a5c  (Broadcom Corp.)
+          Version: 1.00
+          Manufacturer: Apple Inc.
+          Location ID: 0x14300000
+
+            Bluetooth USB Host Controller:
+
+              Product ID: 0x828f
+              Vendor ID: 0x05ac (Apple Inc.)
+              Version: 1.50
+              Manufacturer: Apple Inc.
+              Location ID: 0x14330000
+
+        Disk 2.0:
+
+          Product ID: 0x5678
+          Vendor ID: 0x346d
+          Version: 2.00
+          Serial Number: 3015851134523456754
+          Speed: Up to 480 Mb/s
+          Manufacturer: USB
+          Location ID: 0x14100000 / 15
+          Current Available (mA): 500
+          Current Required (mA): 100
+          Extra Operating Current (mA): 0
+          Media:
+            ProductCode:
+              Capacity: 31.46 GB (31,45,72,80,000 bytes)
+              Removable Media: Yes
+              BSD Name: disk3
+              Logical Unit: 0
+              Partition Map Type: MBR (Master Boot Record)
+              USB Interface: 0
+              Volumes:
+                UBUNTU 22_0:
+                  Capacity: 31.46 GB (31,45,61,98,656 bytes)
+                  Free: 31.44 GB (31,43,56,03,968 bytes)
+                  Writable: Yes
+                  File System: MS-DOS FAT32
+                  BSD Name: disk3s1
+                  Mount Point: /Volumes/UBUNTU 22_0
+                  Content: Windows_FAT_32
+                  Volume UUID: E7E80D0E-604F-3DF3-A5A0-125A59223A81
+
